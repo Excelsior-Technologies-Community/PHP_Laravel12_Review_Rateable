@@ -20,17 +20,23 @@ class ProductController extends Controller
         return view('create-product');
     }
 
+    // Create product page (alternative route)
+    public function createProductPage()
+    {
+        return view('create-product');
+    }
+
     // Create product (AJAX)
     public function createProduct(Request $request)
     {
-        // validation (important)
+        // validation
         if (!$request->name) {
             return response()->json(['message' => 'Name required'], 400);
         }
 
         $product = Product::create([
-            'name' => $request->name,              // ✅ dynamic
-            'description' => $request->description // ✅ dynamic
+            'name' => $request->name,
+            'description' => $request->description
         ]);
 
         return response()->json([
@@ -39,7 +45,6 @@ class ProductController extends Controller
         ]);
     }
 
-    // Reviews page
     // Add Review Page
     public function addReviewPage($id)
     {
@@ -54,22 +59,50 @@ class ProductController extends Controller
         return view('view-review', compact('product'));
     }
 
-    // Add review
+
+    public function getProductsData()
+{
+    $products = Product::with('reviews')->latest()->get();
+    
+    $productsWithRatings = $products->map(function($product) {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'avg_rating' => $product->overallAverageRating(),
+            'reviews_count' => $product->reviews()->count(),
+            'created_at' => $product->created_at,
+        ];
+    });
+    
+    return response()->json([
+        'products' => $productsWithRatings,
+        'total' => $products->count()
+    ]);
+}
+    // Add review with rating AND text comment
     public function addReviewAjax(Request $request)
     {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'rating' => 'required|integer|min:1|max:5',
+            'review' => 'nullable|string|max:1000'
+        ]);
+
         $product = Product::find($request->product_id);
 
-        // ✅ IMPORTANT FIX
+        // Add review with rating and optional comment
         $product->addReview([
-            'review' => null,
+            'review' => $request->review,
             'approved' => true,
             'ratings' => [
-                'overall' => (int) $request->rating, // 🔥 MUST BE THIS
+                'overall' => (int) $request->rating,
             ],
         ], 1);
 
         return response()->json([
-            'message' => 'Rating Added'
+            'success' => true,
+            'message' => 'Rating & Review Added Successfully'
         ]);
     }
 
