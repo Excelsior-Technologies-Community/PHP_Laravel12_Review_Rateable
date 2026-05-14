@@ -272,11 +272,25 @@
     <div class="container">
 
         <!-- HEADER -->
+        <!-- HEADER -->
         <div class="header">
             <h1>✨ Products</h1>
-            <a href="/create">
-                <button class="create-btn">+ Create New Product</button>
-            </a>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+                <!-- CREATE BUTTON -->
+                <a href="/create">
+                    <button class="create-btn">+ Create New Product</button>
+                </a>
+
+                <!-- ⭐ TOP RATED BUTTON (ADD THIS) -->
+                <a href="/top-rated">
+                    <button class="create-btn" style="background:linear-gradient(135deg,#f59e0b,#f97316);">
+                        ⭐ Top Rated Products
+                    </button>
+                </a>
+
+            </div>
         </div>
 
         <!-- SEARCH BOX -->
@@ -308,7 +322,7 @@
         // Load all products on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadAllProducts();
-            
+
             // Add enter key support
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -350,7 +364,7 @@
             // Filter products
             const filtered = allProducts.filter(product => {
                 return product.name.toLowerCase().includes(searchTerm) ||
-                       (product.description && product.description.toLowerCase().includes(searchTerm));
+                    (product.description && product.description.toLowerCase().includes(searchTerm));
             });
 
             displayProducts(filtered);
@@ -383,7 +397,7 @@
                 // Calculate average rating (if available)
                 const avgRating = product.avg_rating || 0;
                 const ratingRounded = Math.round(avgRating);
-                
+
                 html += `
                     <div class="card">
                         <div class="rating-badge">

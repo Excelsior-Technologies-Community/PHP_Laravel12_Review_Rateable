@@ -125,6 +125,7 @@
         .review-stars {
             display: flex;
             gap: 4px;
+            align-items: center;
         }
 
         .review-stars .review-star {
@@ -184,65 +185,77 @@
 
 <body>
 
-    <div class="container">
-        <a href="/reviews" class="back-button">← Back to Products</a>
+<div class="container">
+    <a href="/reviews" class="back-button">← Back to Products</a>
 
-        <div class="card">
-            <h1>{{ $product->name }}</h1>
-            <div class="product-desc">{{ $product->description ?: 'No description provided' }}</div>
+    <div class="card">
+        <h1>{{ $product->name }}</h1>
+        <div class="product-desc">{{ $product->description ?: 'No description provided' }}</div>
 
-            @php
-                $avg = $product->overallAverageRating();
-                $avgRounded = $avg ? round($avg, 1) : 0;
-                $reviews = $product->getReviews();
-                $total = count($reviews);
-            @endphp
+        @php
+            $avg = $product->overallAverageRating();
+            $avgRounded = $avg ? round($avg, 1) : 0;
+            $reviews = $product->getReviews();
+            $total = count($reviews);
+        @endphp
 
-            <div class="average-section">
-                <h3 style="color: #475569; margin-bottom: 8px;">Average Rating</h3>
-                <div class="average-stars">
-                    @for($i = 1; $i <= 5; $i++)
-                        <span class="star {{ $i <= round($avgRounded) ? 'gold' : 'gray' }}">★</span>
-                    @endfor
-                </div>
-                <div class="avg-number">{{ number_format($avgRounded, 1) }}</div>
-                <div class="avg-label">out of 5 • {{ $total }} {{ Str::plural('review', $total) }}</div>
+        <div class="average-section">
+            <h3 style="color: #475569; margin-bottom: 8px;">Average Rating</h3>
+            <div class="average-stars">
+                @for($i = 1; $i <= 5; $i++)
+                    <span class="star {{ $i <= round($avgRounded) ? 'gold' : 'gray' }}">★</span>
+                @endfor
             </div>
+            <div class="avg-number">{{ number_format($avgRounded, 1) }}</div>
+            <div class="avg-label">out of 5 • {{ $total }} {{ Str::plural('review', $total) }}</div>
         </div>
-
-        <div class="reviews-title">
-            📝 Customer Reviews <span>{{ $total }}</span>
-        </div>
-
-        @if($total > 0)
-            @foreach($reviews as $review)
-                <div class="review-card">
-                    <div class="review-header">
-                        <div class="review-stars">
-                            @for($i = 1; $i <= 5; $i++)
-                                <span class="review-star {{ $i <= ($review['ratings']['overall'] ?? 0) ? 'filled' : '' }}">★</span>
-                            @endfor
-                        </div>
-                        <div class="review-date">
-                            {{ isset($review['created_at']) ? \Carbon\Carbon::parse($review['created_at'])->format('M d, Y') : 'Recently' }}
-                        </div>
-                    </div>
-                    @if(!empty($review['review']))
-                        <div class="review-text">“{{ e($review['review']) }}”</div>
-                    @else
-                        <div class="review-text" style="color: #94a3b8; font-style: italic;">No written review</div>
-                    @endif
-                </div>
-            @endforeach
-        @else
-            <div class="empty-reviews">
-                <div style="font-size: 48px; margin-bottom: 12px;">⭐</div>
-                <p>No reviews yet. Be the first to review this product!</p>
-                <a href="/add-review/{{ $product->id }}" style="color: #22c55e; text-decoration: none; margin-top: 12px; display: inline-block;">Write a review →</a>
-            </div>
-        @endif
     </div>
 
-</body>
+    <div class="reviews-title">
+        📝 Customer Reviews <span>{{ $total }}</span>
+    </div>
 
+    @if($total > 0)
+        @foreach($reviews as $review)
+            <div class="review-card">
+
+                <div class="review-header">
+
+                    <div class="review-stars">
+                        @for($i = 1; $i <= 5; $i++)
+                            <span class="review-star {{ $i <= ($review['ratings']['overall'] ?? 0) ? 'filled' : '' }}">★</span>
+                        @endfor
+
+                        {{-- VERIFIED PURCHASE BADGE ADDED HERE --}}
+                        @if($review['is_verified_purchase'] ?? false)
+                            <span style="color:#22c55e;font-size:12px;margin-left:8px;">
+                                ✔ Verified Purchase
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="review-date">
+                        {{ isset($review['created_at']) ? \Carbon\Carbon::parse($review['created_at'])->format('M d, Y') : 'Recently' }}
+                    </div>
+
+                </div>
+
+                @if(!empty($review['review']))
+                    <div class="review-text">“{{ e($review['review']) }}”</div>
+                @else
+                    <div class="review-text" style="color: #94a3b8; font-style: italic;">No written review</div>
+                @endif
+
+            </div>
+        @endforeach
+    @else
+        <div class="empty-reviews">
+            <div style="font-size: 48px; margin-bottom: 12px;">⭐</div>
+            <p>No reviews yet. Be the first to review this product!</p>
+            <a href="/add-review/{{ $product->id }}" style="color: #22c55e; text-decoration: none; margin-top: 12px; display: inline-block;">Write a review →</a>
+        </div>
+    @endif
+</div>
+
+</body>
 </html>

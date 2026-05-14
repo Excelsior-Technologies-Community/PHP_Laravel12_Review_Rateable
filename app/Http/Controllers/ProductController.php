@@ -61,25 +61,25 @@ class ProductController extends Controller
 
 
     public function getProductsData()
-{
-    $products = Product::with('reviews')->latest()->get();
-    
-    $productsWithRatings = $products->map(function($product) {
-        return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'description' => $product->description,
-            'avg_rating' => $product->overallAverageRating(),
-            'reviews_count' => $product->reviews()->count(),
-            'created_at' => $product->created_at,
-        ];
-    });
-    
-    return response()->json([
-        'products' => $productsWithRatings,
-        'total' => $products->count()
-    ]);
-}
+    {
+        $products = Product::with('reviews')->latest()->get();
+
+        $productsWithRatings = $products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'avg_rating' => $product->overallAverageRating(),
+                'reviews_count' => $product->reviews()->count(),
+                'created_at' => $product->created_at,
+            ];
+        });
+
+        return response()->json([
+            'products' => $productsWithRatings,
+            'total' => $products->count()
+        ]);
+    }
     // Add review with rating AND text comment
     public function addReviewAjax(Request $request)
     {
@@ -91,14 +91,18 @@ class ProductController extends Controller
 
         $product = Product::find($request->product_id);
 
-        // Add review with rating and optional comment
-        $product->addReview([
+        // 1. create review using package
+        $review = $product->addReview([
             'review' => $request->review,
             'approved' => true,
             'ratings' => [
                 'overall' => (int) $request->rating,
             ],
         ], 1);
+
+        // 2. IMPORTANT: manually update DB column
+        $review->is_verified_purchase = 1;
+        $review->save();
 
         return response()->json([
             'success' => true,
@@ -125,4 +129,25 @@ class ProductController extends Controller
             'average_rating' => $product->overallAverageRating()
         ]);
     }
+
+    // FIXED TOP RATED FUNCTION (MAIN FIX)
+    public function topRated()
+    {
+        $products = Product::with('reviews')
+            ->get()
+            ->map(function ($product) {
+
+                $product->avg_rating = $product->overallAverageRating();
+
+                return $product;
+            })
+            ->filter(function ($product) {
+                return $product->avg_rating >= 4;
+            })
+            ->sortByDesc('avg_rating')
+            ->values();
+
+        return view('top-rated', compact('products'));
+    }
 }
+

@@ -18,3 +18,4 @@ Route::post('/review-ajax', [ProductController::class, 'addReviewAjax']);
 Route::get('/reviews-data', [ProductController::class, 'getReviews']);
 Route::get('/average', [ProductController::class, 'averageRating']);
 Route::get('/products-data', [ProductController::class, 'getProductsData']);
+Route::get('/top-rated', [ProductController::class, 'topRated']);
