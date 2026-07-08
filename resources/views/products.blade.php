@@ -283,10 +283,15 @@
                     <button class="create-btn">+ Create New Product</button>
                 </a>
 
-                <!-- ⭐ TOP RATED BUTTON (ADD THIS) -->
                 <a href="/top-rated">
                     <button class="create-btn" style="background:linear-gradient(135deg,#f59e0b,#f97316);">
                         ⭐ Top Rated Products
+                    </button>
+                </a>
+
+                <a href="/admin/reviews">
+                    <button class="create-btn" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
+                        🛡 Admin Moderation
                     </button>
                 </a>
 

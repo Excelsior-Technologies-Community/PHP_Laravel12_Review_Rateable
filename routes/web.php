@@ -19,3 +19,7 @@ Route::get('/reviews-data', [ProductController::class, 'getReviews']);
 Route::get('/average', [ProductController::class, 'averageRating']);
 Route::get('/products-data', [ProductController::class, 'getProductsData']);
 Route::get('/top-rated', [ProductController::class, 'topRated']);
+Route::post('/reviews/{review}/vote', [ProductController::class, 'voteReview']);
+Route::get('/admin/reviews', [ProductController::class, 'adminReviews'])->name('admin.reviews');
+Route::post('/admin/reviews/{review}/approve', [ProductController::class, 'approveReview']);
+Route::post('/admin/reviews/{review}/reject', [ProductController::class, 'rejectReview']);
