@@ -180,6 +180,26 @@
             border-top: 1px solid #e2e8f0;
             margin: 20px 0;
         }
+
+        .vote-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .vote-buttons button {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 12px;
+            cursor: pointer;
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .vote-buttons button:hover {
+            background: #e2e8f0;
+        }
     </style>
 </head>
 
@@ -195,8 +215,8 @@
         @php
             $avg = $product->overallAverageRating();
             $avgRounded = $avg ? round($avg, 1) : 0;
-            $reviews = $product->getReviews();
-            $total = count($reviews);
+            $approvedReviews = $product->getReviews(true);
+            $total = count($approvedReviews);
         @endphp
 
         <div class="average-section">
@@ -215,19 +235,21 @@
         📝 Customer Reviews <span>{{ $total }}</span>
     </div>
 
-    @if($total > 0)
+    @if($reviews->count() > 0)
         @foreach($reviews as $review)
             <div class="review-card">
 
                 <div class="review-header">
 
                     <div class="review-stars">
+                        @php
+                            $overallRating = optional($review->ratings->firstWhere('key', 'overall'))->value ?? 0;
+                        @endphp
                         @for($i = 1; $i <= 5; $i++)
-                            <span class="review-star {{ $i <= ($review['ratings']['overall'] ?? 0) ? 'filled' : '' }}">★</span>
+                            <span class="review-star {{ $i <= $overallRating ? 'filled' : '' }}">★</span>
                         @endfor
 
-                        {{-- VERIFIED PURCHASE BADGE ADDED HERE --}}
-                        @if($review['is_verified_purchase'] ?? false)
+                        @if($review->is_verified_purchase ?? false)
                             <span style="color:#22c55e;font-size:12px;margin-left:8px;">
                                 ✔ Verified Purchase
                             </span>
@@ -235,16 +257,25 @@
                     </div>
 
                     <div class="review-date">
-                        {{ isset($review['created_at']) ? \Carbon\Carbon::parse($review['created_at'])->format('M d, Y') : 'Recently' }}
+                        {{ isset($review->created_at) ? \Carbon\Carbon::parse($review->created_at)->format('M d, Y') : 'Recently' }}
                     </div>
 
                 </div>
 
-                @if(!empty($review['review']))
-                    <div class="review-text">“{{ e($review['review']) }}”</div>
+                @if(!empty($review->review))
+                    <div class="review-text">“{{ e($review->review) }}”</div>
                 @else
                     <div class="review-text" style="color: #94a3b8; font-style: italic;">No written review</div>
                 @endif
+
+                @if(!$review->approved)
+                    <div style="margin-top: 8px; color:#b45309; font-size: 0.85rem; font-weight: 600;">⏳ Pending Approval</div>
+                @endif
+
+                <div class="vote-buttons">
+                    <button type="button" onclick="voteReview({{ $review->id }}, 'helpful')">👍 Helpful <span id="helpful-{{ $review->id }}">{{ $review->helpful_count ?? 0 }}</span></button>
+                    <button type="button" onclick="voteReview({{ $review->id }}, 'not_helpful')">👎 Not Helpful <span id="not-helpful-{{ $review->id }}">{{ $review->not_helpful_count ?? 0 }}</span></button>
+                </div>
 
             </div>
         @endforeach
@@ -256,6 +287,26 @@
         </div>
     @endif
 </div>
+
+<script>
+    function voteReview(reviewId, type) {
+        if (!reviewId) return;
+
+        fetch('/reviews/' + reviewId + '/vote', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ type: type })
+        }).then(response => response.json()).then(data => {
+            if (data.success) {
+                document.getElementById('helpful-' + reviewId).textContent = data.helpful_count;
+                document.getElementById('not-helpful-' + reviewId).textContent = data.not_helpful_count;
+            }
+        });
+    }
+</script>
 
 </body>
 </html>

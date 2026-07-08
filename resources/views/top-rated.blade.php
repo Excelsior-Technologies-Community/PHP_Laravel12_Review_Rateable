@@ -106,11 +106,9 @@
         <a href="/reviews" class="back-btn">← Back</a>
     </div>
 
-    <!-- FILTER BUTTONS -->
     <div class="filters">
-        <button class="active" onclick="filterProducts('all')">All</button>
-        <button onclick="filterProducts('5')">5 ★</button>
-        <button onclick="filterProducts('4')">4 ★ & Above</button>
+        <a href="/top-rated?sort=rating" class="back-btn" style="padding:8px 14px; {{ $sort === 'rating' ? 'background:#f59e0b;color:white;' : '' }}">Top Rated</a>
+        <a href="/top-rated?sort=reviews" class="back-btn" style="padding:8px 14px; {{ $sort === 'reviews' ? 'background:#f59e0b;color:white;' : '' }}">Most Reviewed</a>
     </div>
 
     <!-- LIST -->
@@ -129,6 +127,7 @@
 
                     <h3>{{ $product->name }}</h3>
                     <p>{{ $product->description ?? 'No description available' }}</p>
+                    <p style="color:#64748b; margin-top:8px;"><strong>{{ $product->review_count }}</strong> approved review{{ $product->review_count === 1 ? '' : 's' }}</p>
 
                 </div>
 
@@ -145,35 +144,6 @@
     </div>
 
 </div>
-
-<!-- FILTER SCRIPT -->
-<script>
-function filterProducts(type) {
-
-    let cards = document.querySelectorAll('.card');
-    let buttons = document.querySelectorAll('.filters button');
-
-    buttons.forEach(btn => btn.classList.remove('active'));
-
-    event.target.classList.add('active');
-
-    cards.forEach(card => {
-
-        let rating = parseFloat(card.getAttribute('data-rating'));
-
-        if(type === 'all') {
-            card.style.display = 'block';
-        }
-        else if(type === '5') {
-            card.style.display = rating >= 5 ? 'block' : 'none';
-        }
-        else if(type === '4') {
-            card.style.display = rating >= 4 ? 'block' : 'none';
-        }
-
-    });
-}
-</script>
 
 </body>
 </html>

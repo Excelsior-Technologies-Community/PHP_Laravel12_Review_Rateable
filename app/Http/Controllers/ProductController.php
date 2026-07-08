@@ -3,62 +3,59 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use Codebyray\ReviewRateable\Models\Review;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    // Product list
     public function index()
     {
         $products = Product::latest()->get();
+
         return view('products', compact('products'));
     }
 
-    // Create page
     public function createPage()
     {
         return view('create-product');
     }
 
-    // Create product page (alternative route)
     public function createProductPage()
     {
         return view('create-product');
     }
 
-    // Create product (AJAX)
     public function createProduct(Request $request)
     {
-        // validation
         if (!$request->name) {
             return response()->json(['message' => 'Name required'], 400);
         }
 
         $product = Product::create([
             'name' => $request->name,
-            'description' => $request->description
+            'description' => $request->description,
         ]);
 
         return response()->json([
             'message' => 'Product Created',
-            'data' => $product
+            'data' => $product,
         ]);
     }
 
-    // Add Review Page
     public function addReviewPage($id)
     {
         $product = Product::findOrFail($id);
+
         return view('add-review', compact('product'));
     }
 
-    // View Review Page
     public function viewReviewPage($id)
     {
         $product = Product::findOrFail($id);
-        return view('view-review', compact('product'));
-    }
+        $reviews = $product->reviews()->with('ratings')->latest()->get();
 
+        return view('view-review', compact('product', 'reviews'));
+    }
 
     public function getProductsData()
     {
@@ -70,84 +67,120 @@ class ProductController extends Controller
                 'name' => $product->name,
                 'description' => $product->description,
                 'avg_rating' => $product->overallAverageRating(),
-                'reviews_count' => $product->reviews()->count(),
+                'reviews_count' => $product->reviews()->where('approved', true)->count(),
                 'created_at' => $product->created_at,
             ];
         });
 
         return response()->json([
             'products' => $productsWithRatings,
-            'total' => $products->count()
+            'total' => $products->count(),
         ]);
     }
-    // Add review with rating AND text comment
+
     public function addReviewAjax(Request $request)
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'rating' => 'required|integer|min:1|max:5',
-            'review' => 'nullable|string|max:1000'
+            'review' => 'nullable|string|max:1000',
         ]);
 
-        $product = Product::find($request->product_id);
+        $product = Product::findOrFail($request->product_id);
 
-        // 1. create review using package
         $review = $product->addReview([
             'review' => $request->review,
-            'approved' => true,
+            'approved' => false,
             'ratings' => [
                 'overall' => (int) $request->rating,
             ],
         ], 1);
 
-        // 2. IMPORTANT: manually update DB column
         $review->is_verified_purchase = 1;
         $review->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Rating & Review Added Successfully'
+            'message' => 'Your review has been submitted and is pending admin approval.',
         ]);
     }
 
-    // Get reviews (product-wise)
     public function getReviews(Request $request)
     {
-        $product = Product::find($request->id);
+        $product = Product::findOrFail($request->id);
 
         return response()->json([
-            'reviews' => $product->getReviews()
+            'reviews' => $product->getReviews(),
         ]);
     }
 
-    // Average rating
     public function averageRating(Request $request)
     {
-        $product = Product::find($request->id);
+        $product = Product::findOrFail($request->id);
 
         return response()->json([
-            'average_rating' => $product->overallAverageRating()
+            'average_rating' => $product->overallAverageRating(),
         ]);
     }
 
-    // FIXED TOP RATED FUNCTION (MAIN FIX)
-    public function topRated()
+    public function voteReview(Request $request, Review $review)
     {
+        $request->validate([
+            'type' => 'required|in:helpful,not_helpful',
+        ]);
+
+        $field = $request->input('type') === 'helpful' ? 'helpful_count' : 'not_helpful_count';
+        $review->increment($field);
+
+        return response()->json([
+            'success' => true,
+            'helpful_count' => $review->fresh()->helpful_count,
+            'not_helpful_count' => $review->fresh()->not_helpful_count,
+        ]);
+    }
+
+    public function adminReviews()
+    {
+        $pendingReviews = Review::where('approved', false)->latest()->get();
+        $approvedReviews = Review::where('approved', true)->latest()->get();
+
+        return view('admin-reviews', compact('pendingReviews', 'approvedReviews'));
+    }
+
+    public function approveReview(Review $review)
+    {
+        $review->update(['approved' => true]);
+
+        return back()->with('success', 'Review approved successfully.');
+    }
+
+    public function rejectReview(Review $review)
+    {
+        $review->delete();
+
+        return back()->with('success', 'Review removed successfully.');
+    }
+
+    public function topRated(Request $request)
+    {
+        $sort = $request->get('sort', 'rating');
+
         $products = Product::with('reviews')
             ->get()
             ->map(function ($product) {
-
                 $product->avg_rating = $product->overallAverageRating();
+                $product->review_count = $product->reviews()->where('approved', true)->count();
 
                 return $product;
-            })
-            ->filter(function ($product) {
-                return $product->avg_rating >= 4;
-            })
-            ->sortByDesc('avg_rating')
-            ->values();
+            });
 
-        return view('top-rated', compact('products'));
+        if ($sort === 'reviews') {
+            $products = $products->sortByDesc('review_count')->values();
+        } else {
+            $products = $products->sortByDesc('avg_rating')->values();
+        }
+
+        return view('top-rated', compact('products', 'sort'));
     }
 }
 
